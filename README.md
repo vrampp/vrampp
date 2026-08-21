@@ -1,14 +1,27 @@
 # vrampp
 
-Projeto didático do Prof. Rold Jr. para aprender DevOps construindo um ambiente real, pequeno e verificável. O nome combina **Vagrant** com a ideia de um XAMPP próprio, executado em uma VM Debian compacta.
+O `vrampp` é uma ferramenta de infraestrutura local que entrega uma VM Debian compacta com Apache, PHP, MariaDB, phpMyAdmin e FTP. O projeto nasceu de uma iniciativa acadêmica do Prof. Rold Jr., mas seu contrato atual é operacional: fornecer um ambiente reproduzível para aplicações que precisam de uma stack web LAMP local.
 
-O objetivo não é entregar uma caixa-preta pronta: é acompanhar, como um projeto, a passagem da infraestrutura manual para Vagrant, depois para containers e, mais adiante, para uma esteira de publicação. Cada versão deixa uma entrega funcionando e uma decisão técnica compreensível.
+O objetivo é fornecer uma base explícita, versionada e verificável. A infraestrutura é descrita por arquivos, provisionada por Vagrant e operada por comandos previsíveis. A camada posterior de containers é documentada separadamente para permitir uma migração controlada.
 
 O repositório funciona como laboratório independente: clone o projeto, consulte o [VAGRANT.md](VAGRANT.md), instale VirtualBox e Vagrant, copie `.env.example` para `.env` e execute `vagrant up`. A segunda camada está em [VAGRANT-CONTAINERS.md](VAGRANT-CONTAINERS.md). O Markdown é o material de apoio do projeto: explica os conceitos, descreve cada arquivo, orienta a execução e mostra como diagnosticar problemas.
 
-O objetivo é aprender Vagrant praticando. A criação de uma stack LAMP própria é um exercício útil porque reúne vários recursos do Vagrant em um único ambiente: box, provider, VM, hostname, portas encaminhadas, pasta compartilhada, provisionamento, serviços Linux, banco de dados e ciclo de vida. O resultado é uma aplicação pequena, mas o aprendizado está em construir, verificar, parar, recriar e entender cada camada.
+O produto reúne box, provider, VM, hostname, portas encaminhadas, pasta compartilhada, provisionamento, serviços Linux, banco de dados e ciclo de vida em uma unidade versionada. A operação inclui criação, verificação, manutenção, parada, atualização e reconstrução controlada.
 
 O `vrampp` não pretende substituir uma distribuição XAMPP pronta. Ele torna explícito como uma solução desse tipo é montada e permite observar o caminho completo entre a máquina host, a VM, o Apache, o PHP, o MariaDB e a página que consulta dados reais.
+
+## Classificação de infraestrutura
+
+Em termos de DevOps, o `vrampp` ocupa estas camadas:
+
+| Conceito | Papel do vrampp |
+| --- | --- |
+| IaC | `Vagrantfile`, `bootstrap.sh`, `.env.example` e schema versionam o estado desejado e o provisionamento. |
+| IaaS local | VirtualBox fornece a capacidade computacional local; o vrampp empacota uma oferta padronizada sobre ela. |
+| Plataforma local | Apache, PHP, MariaDB, phpMyAdmin e FTP formam os serviços consumidos pela aplicação. |
+| Ferramenta de infraestrutura | O repositório oferece comandos, contratos de portas, configuração e smoke test para operar a stack. |
+
+Tecnicamente, o VirtualBox é o provider de virtualização e o Vagrant é o orquestrador de ciclo de vida. O `vrampp` é o produto que combina esses recursos em uma infraestrutura local reutilizável. Não é cloud IaaS pública; é uma camada local com comportamento semelhante para desenvolvimento e integração.
 
 ## O que esta primeira versão entrega
 
@@ -24,9 +37,9 @@ Esta primeira versão do `vrampp` usa somente Vagrant e uma VM Debian Bookworm c
 
 Cada cópia do laboratório procura portas host livres a partir do prefixo `55`. Assim, duas instalações podem coexistir: uma pode usar `55080/55021` e outra `55081/55022`, sem alterar as portas internas `80/21` da VM.
 
-Containers ainda não fazem parte desta pasta. Eles são a próxima etapa do curso e serão usados para comparar a instalação tradicional da VM com uma infraestrutura descrita por `Dockerfile` e `compose.yaml`.
+Containers ainda não fazem parte desta versão. A camada containerizada está em `VAGRANT-CONTAINERS.md` e representa uma evolução de implementação, não uma mudança no contrato que as aplicações consomem.
 
-## Laboratórios
+## Implementações
 
 ### 01. VM e stack web
 
@@ -42,13 +55,13 @@ Resultado: uma VM Linux local com:
 
 O arquivo `VAGRANT.md` acompanha este laboratório como manual técnico de apoio. Ele contém a sequência de instalação, a explicação do `Vagrantfile`, o papel do `bootstrap.sh`, o script SQL, o teste feito por `example/index.php`, o tratamento de colisões de portas e os comandos de ciclo de vida.
 
-### 02. vrampp v2: containers
+### 02. Segunda implementação: containers
 
 A próxima etapa reaproveita o comportamento da stack em `Dockerfile` e `compose.yaml`, mantendo a VM tradicional como referência de comparação. O documento [VAGRANT-CONTAINERS.md](VAGRANT-CONTAINERS.md) explica IaAS, IaC, Docker Desktop, Docker Engine, volumes e healthchecks.
 
-O estudante poderá responder a uma pergunta importante: o que mudou quando a infraestrutura deixou de ser instalada passo a passo dentro de uma VM e passou a ser declarada como serviços reproduzíveis?
+O operador pode comparar a instalação tradicional com serviços declarados em `Dockerfile` e `compose.yaml`, preservando a mesma separação entre aplicação, dados e infraestrutura.
 
-### 03. Nuvem
+### 03. Execução em nuvem
 
 A evolução seguinte troca a VM local pela VM Linux do Oracle Cloud Free Tier e promove a imagem publicada, sem instalar PHP, Apache ou MariaDB diretamente no servidor.
 
@@ -132,7 +145,7 @@ vrampp/
 - `example/api/services.php`: endpoint de status e ações restritas dos serviços;
 - `LICENSE`: licença MIT do projeto, mantido pelo Prof. Rold Jr.;
 - `VAGRANT.md`: manual completo de conceitos, operação, diagnóstico e caso de uso.
-- `VAGRANT-CONTAINERS.md`: manual da segunda camada do curso;
+- `VAGRANT-CONTAINERS.md`: especificação da implementação containerizada;
 - `.env.example`: modelo de configuração; o `.env` real nunca entra no Git.
 - `smoke-test.ps1`: verificação HTTP do dashboard e endpoint de status.
 

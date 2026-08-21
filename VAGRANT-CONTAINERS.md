@@ -1,6 +1,6 @@
-# vrampp v2: segunda camada com containers
+# vrampp v2: implementação containerizada
 
-Depois de executar a primeira versao Vagrant, o curso apresenta o `vrampp v2` com containers. A pergunta muda de “como instalar Apache, PHP e MariaDB na VM?” para “como descrever e executar os servicos sem instalar a stack no host?”. Este arquivo deve acompanhar o repositorio vrampp e ser referenciado pelo Contatica no commit 03.
+Depois da implementação Vagrant, o projeto oferece uma segunda implementação com containers. A decisão muda de “instalar Apache, PHP e MariaDB na VM” para “descrever e executar os serviços sem instalar a stack no host”. Este documento acompanha o repositório vrampp e pode ser referenciado pelo Contatica no commit 03.
 
 ## O que muda
 
@@ -12,7 +12,7 @@ Depois de executar a primeira versao Vagrant, o curso apresenta o `vrampp v2` co
 | Aplicacao | `/var/www/html` da VM | imagem PHP/Apache |
 | IaC | `Vagrantfile` e `bootstrap.sh` | `Dockerfile` e `compose.yaml` |
 
-Na entrega 03 do Contatica, a mesma aplicacao PHP/MariaDB do commit 02 roda nessa camada containerizada. O commit 02 continua usando o vrampp Vagrant.
+Na entrega 03 do Contatica, a mesma aplicação PHP/MariaDB do commit 02 roda nessa implementação containerizada. O commit 02 continua usando o vrampp Vagrant.
 
 ## Windows com Docker Desktop
 

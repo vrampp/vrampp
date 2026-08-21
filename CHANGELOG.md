@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.6.0] - 2026-08-21
+
+### Posicionamento
+
+- documentação reposicionada como produto de infraestrutura local reutilizável;
+- classificação explícita como IaC + plataforma local com comportamento semelhante a IaaS privado;
+- removida a linguagem de curso da documentação operacional;
+- origem acadêmica mantida somente como contexto histórico;
+- contrato de consumo pelo Contatica documentado como integração externa.
+
 ## [0.5.0] - 2026-08-21
 
 ### Adicionado

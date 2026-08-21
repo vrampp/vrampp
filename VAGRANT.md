@@ -1,20 +1,20 @@
-# vrampp: curso prático de Vagrant e infraestrutura
+# vrampp: especificação operacional da infraestrutura local
 
-Este manual é o curso prático do projeto `vrampp`, criado pelo Prof. Rold Jr. para ensinar DevOps a partir de entregas pequenas e verificáveis. A primeira versão apresenta uma VM Debian Bookworm compacta com uma pequena pilha web instalada diretamente no sistema operacional: Apache, PHP, MariaDB, phpMyAdmin e FTP. A VM cria um banco de exemplo, popula três registros e publica uma landing page PHP que executa um `SELECT` e mostra uma lista.
+Este documento descreve a operação do `vrampp`, uma ferramenta de infraestrutura local criada a partir de uma iniciativa acadêmica do Prof. Rold Jr. O produto entrega uma VM Debian Bookworm compacta com Apache, PHP, MariaDB, phpMyAdmin e FTP. A VM cria um banco de exemplo, popula três registros e publica uma landing page PHP que executa um `SELECT` e mostra uma lista.
 
 O escopo é demonstrar, de ponta a ponta, as camadas de um ambiente web: máquina, sistema operacional, servidor HTTP, interpretador, banco, credenciais, tabela, consulta e resposta.
 
-## Como estudar este projeto
+## Como operar este projeto
 
-Leia cada seção como uma etapa de uma entrega de projeto:
+Use cada seção como uma etapa operacional:
 
 1. entenda o resultado esperado;
 2. identifique qual arquivo controla a infraestrutura;
 3. execute a mudança com `vagrant up` ou `vagrant provision`;
 4. verifique a página, o banco e os serviços;
-5. registre o que foi aprendido antes de avançar para containers.
+5. registre a alteração e sua versão antes de avançar para containers.
 
-Nesta primeira etapa, a pergunta central é: **como uma descrição versionada consegue criar uma máquina que entrega uma aplicação web funcional?**
+O princípio central é: **a aplicação e a infraestrutura necessária para executá-la devem ser versionadas e verificáveis juntas.**
 
 ## Limite desta versão
 
@@ -370,7 +370,7 @@ Um cliente FTP pode testar upload e download. O serviço é apenas local e não 
 Abra o PowerShell na pasta `vrampp`:
 
 ```powershell
-cd A:\WSLS\CONTATICA\_dev\aulas\02-iac-e-primeira-publicação\vagrant\vrampp
+cd caminho\para\vrampp
 vagrant validate
 vagrant up
 ```
