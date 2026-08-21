@@ -2,10 +2,6 @@ CREATE DATABASE IF NOT EXISTS curso_exemplo
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-CREATE USER IF NOT EXISTS 'curso'@'localhost' IDENTIFIED BY 'curso-local';
-GRANT ALL PRIVILEGES ON curso_exemplo.* TO 'curso'@'localhost';
-FLUSH PRIVILEGES;
-
 USE curso_exemplo;
 
 CREATE TABLE IF NOT EXISTS products (

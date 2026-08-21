@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.3.0] - 2026-08-21
+
+### Organizado
+
+- manual principal consolidado sem capítulos duplicados ou credenciais legadas;
+- `VAGRANT-CONTAINERS.md` incorporado como documentação oficial da segunda camada;
+- `smoke-test.ps1` incorporado para verificação repetível do dashboard;
+- `.env.example`, `LICENSE` e endpoint de serviços incluídos no release autocontido;
+- contrato de caminhos estabilizado em `/vagrant/vrampp`.
+
+### Verificação
+
+- `bootstrap.sh` validado com `bash -n`;
+- `.env` confirmado fora do índice Git;
+- referências a `myXampp` e `curso-local` removidas do projeto.
+
+## [0.2.0] - 2026-08-20
+
+### Adicionado
+
+- landing page técnica com Bootstrap 5 e Vue 3 carregados por CDN;
+- LEDs de status para Apache/PHP, MariaDB, phpMyAdmin e FTP;
+- verificação PHP do PDO e do socket local do vsftpd;
+- licença MIT e contato do Prof. Rold Jr.
+- `.env.example`, endpoint de serviços e smoke test operacional;
+- documentação de NAT, túnel SSH, manutenção e versionamento do IaC;
+- bootstrap tolerante a `.env` com CRLF do Windows;
+
 ## [0.1.0] - 2026-08-20
 
 ### Adicionado
@@ -7,10 +35,10 @@
 - repositório inicial `vrampp` com branch `main`;
 - `Vagrantfile` usando Ubuntu Jammy e VirtualBox;
 - hostname `vrampp-local`;
-- encaminhamento HTTP da VM para `localhost:8080`;
-- encaminhamento FTP da VM para `localhost:2121`;
+- encaminhamento HTTP da VM para `localhost:55080`;
+- encaminhamento FTP da VM para `localhost:55021`;
 - correção automática opcional de portas com `auto_correct`;
-- pasta compartilhada com todo o projeto em `/vagrant/myXampp`;
+- pasta compartilhada com todo o projeto em `/vagrant/vrampp`;
 - provisionamento Bash com Apache, PHP, MariaDB, phpMyAdmin e vsftpd;
 - banco `curso_exemplo` e tabela `products` em `database/init.sql`;
 - registros iniciais para validar a instalação;
