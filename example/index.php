@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 $config = require __DIR__ . '/config.local.php';
+$httpPort = (string) $config['http_port'];
+$ftpPort = (string) $config['ftp_port'];
+$databasePort = $config['db_port'] === '0' ? 'interno:3306' : (string) $config['db_port'];
 $pdo = new PDO(
     sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['host'], $config['port'], $config['name']),
     $config['user'],
@@ -19,10 +22,10 @@ $phpmyadminHeaders = @get_headers('http://127.0.0.1/phpmyadmin', true, stream_co
 ]));
 $phpmyadminOnline = is_array($phpmyadminHeaders) && count($phpmyadminHeaders) > 0;
 $services = [
-    ['name' => 'Apache + PHP', 'service' => 'apache2', 'port' => '55080', 'state' => 'online', 'detail' => 'Esta página foi renderizada pelo servidor web.'],
-    ['name' => 'MariaDB', 'service' => 'mariadb', 'port' => '3306', 'state' => 'online', 'detail' => 'PDO executou SELECT em curso_exemplo.products.'],
-    ['name' => 'phpMyAdmin', 'service' => '', 'port' => '55080', 'state' => $phpmyadminOnline ? 'online' : 'offline', 'detail' => $phpmyadminOnline ? 'Resposta HTTP recebida em /phpmyadmin.' : 'Nenhuma resposta HTTP recebida em /phpmyadmin.'],
-    ['name' => 'FTP / vsftpd', 'service' => 'vsftpd', 'port' => '55021', 'state' => $ftpOnline ? 'online' : 'offline', 'detail' => $ftpOnline ? 'Socket local respondeu na porta 21.' : 'Socket local não respondeu na porta 21.']
+    ['name' => 'Apache + PHP', 'service' => 'apache2', 'port' => $httpPort, 'state' => 'online', 'detail' => 'Esta página foi renderizada pelo servidor web.'],
+    ['name' => 'MariaDB', 'service' => 'mariadb', 'port' => $databasePort, 'state' => 'online', 'detail' => 'PDO executou SELECT em curso_exemplo.products.'],
+    ['name' => 'phpMyAdmin', 'service' => '', 'port' => $httpPort, 'state' => $phpmyadminOnline ? 'online' : 'offline', 'detail' => $phpmyadminOnline ? 'Resposta HTTP recebida em /phpmyadmin.' : 'Nenhuma resposta HTTP recebida em /phpmyadmin.'],
+    ['name' => 'FTP / vsftpd', 'service' => 'vsftpd', 'port' => $ftpPort, 'state' => $ftpOnline ? 'online' : 'offline', 'detail' => $ftpOnline ? 'Socket local respondeu na porta 21.' : 'Socket local não respondeu na porta 21.']
 ];
 ?>
 <!doctype html>
@@ -85,12 +88,12 @@ $services = [
 </head>
 <body>
 <main class="shell">
-    <nav class="topbar"><span class="mark">vrampp / 01</span><span class="links"><a href="/phpmyadmin">phpMyAdmin</a><a href="ftp://localhost:55021">FTP local</a></span></nav>
+    <nav class="topbar"><span class="mark">vrampp / 01</span><span class="links"><a href="/phpmyadmin">phpMyAdmin</a><a href="ftp://localhost:<?= htmlspecialchars($ftpPort, ENT_QUOTES, 'UTF-8') ?>">FTP local</a></span></nav>
     <header class="hero">
-        <div><span class="eyebrow">Laboratório DevOps do Prof. Rold Jr.</span><h1>Infraestrutura que dá para ver.</h1><p class="intro">Uma VM Ubuntu, uma stack LAMP e uma pequena consulta ao banco. O primeiro passo do vrampp é tornar cada camada concreta antes de levar o projeto para containers.</p></div>
+        <div><span class="eyebrow">Laboratório DevOps do Prof. Rold Jr.</span><h1>Infraestrutura que dá para ver.</h1><p class="intro">Uma VM Debian compacta, uma stack LAMP e uma pequena consulta ao banco. O primeiro passo do vrampp é tornar cada camada concreta antes de levar o projeto para containers.</p></div>
         <div class="hero-note"><strong>Vagrant</strong>Uma entrega reproduzível com Apache, PHP, MariaDB, phpMyAdmin e FTP instalados no guest.</div>
     </header>
-    <section class="band" aria-label="Resumo da infraestrutura"><div class="stat"><b>01</b><span>versão do laboratório</span></div><div class="stat"><b>5</b><span>serviços instalados</span></div><div class="stat"><b>VM</b><span>Ubuntu Jammy local</span></div><div class="stat"><b>55</b><span>prefixo das portas</span></div></section>
+    <section class="band" aria-label="Resumo da infraestrutura"><div class="stat"><b>01</b><span>versão do laboratório</span></div><div class="stat"><b>5</b><span>serviços instalados</span></div><div class="stat"><b>VM</b><span>Debian Bookworm local</span></div><div class="stat"><b>55</b><span>prefixo das portas</span></div></section>
     <section class="content"><div><span class="eyebrow">O que está funcionando</span><h2>Uma stack pequena, mas inteira.</h2><p class="copy">Esta página é também o teste integrado: o Apache serve o arquivo, o PHP executa, o PDO consulta o MariaDB e os registros aparecem abaixo. O resultado é simples de inspecionar e fácil de recriar.</p></div><div class="stack"><div class="stack-item"><b>Vagrant</b><span>cria e controla a VM</span></div><div class="stack-item"><b>Apache + PHP</b><span>entregam a aplicação web</span></div><div class="stack-item"><b>MariaDB</b><span>guarda dados reais de exemplo</span></div><div class="stack-item"><b>phpMyAdmin + FTP</b><span>apoiam inspeção e arquivos locais</span></div></div></section>
     <section id="service-app" class="status-section" aria-labelledby="status-title">
         <span class="eyebrow">Prova de funcionamento</span>
@@ -113,7 +116,7 @@ $services = [
         <p class="license">MIT License · Prof. Rold Jr. · prof.roldjunior@gmail.com</p>
     </section>
     <section class="data"><div class="data-head"><div><span class="eyebrow">Consulta executada agora</span><h2>Produtos no banco</h2></div><p>PDO + SELECT em <strong>curso_exemplo.products</strong></p></div><table><thead><tr><th>ID</th><th>Nome</th><th>Categoria</th></tr></thead><tbody><?php foreach ($products as $product): ?><tr><td><?= htmlspecialchars((string)$product['id'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars($product['category'], ENT_QUOTES, 'UTF-8') ?></td></tr><?php endforeach; ?></tbody></table></section>
-    <footer><span>Primeira entrega: VM tradicional antes dos containers.</span><span>HTTP :55080 · FTP :55021 · <a href="/phpmyadmin">inspecionar banco</a></span></footer>
+    <footer><span>Primeira entrega: VM tradicional antes dos containers.</span><span>HTTP :<?= htmlspecialchars($httpPort, ENT_QUOTES, 'UTF-8') ?> · FTP :<?= htmlspecialchars($ftpPort, ENT_QUOTES, 'UTF-8') ?> · <a href="/phpmyadmin">inspecionar banco</a></span></footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.min.js"></script>
 <script>
@@ -126,7 +129,7 @@ Vue.createApp({
             if (response.ok) this.services = result.services;
         },
         async control(service, action) {
-            await fetch(`/api/services.php?service=${encodeURIComponent(service)}&action=${action}`);
+            await fetch(`/api/services.php?service=${encodeURIComponent(service)}&action=${action}`, { method: 'POST' });
             await this.refresh();
         }
     },

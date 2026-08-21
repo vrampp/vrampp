@@ -1,13 +1,21 @@
 <?php
 declare(strict_types=1);
 
+$config = require __DIR__ . '/../config.local.php';
 $allowedServices = [
-    'apache2' => ['label' => 'Apache + PHP', 'port' => '55080'],
-    'mariadb' => ['label' => 'MariaDB', 'port' => '3306'],
-    'vsftpd' => ['label' => 'FTP / vsftpd', 'port' => '55021'],
+    'apache2' => ['label' => 'Apache + PHP', 'port' => (string) $config['http_port']],
+    'mariadb' => ['label' => 'MariaDB', 'port' => $config['db_port'] === '0' ? 'interno:3306' : (string) $config['db_port']],
+    'vsftpd' => ['label' => 'FTP / vsftpd', 'port' => (string) $config['ftp_port']],
 ];
 $action = $_GET['action'] ?? 'status';
 $service = $_GET['service'] ?? '';
+
+if ($action !== 'status' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    header('Allow: GET, POST');
+    echo json_encode(['error' => 'Acoes de servico usam POST.']);
+    exit;
+}
 
 if ($action !== 'status' && (!isset($allowedServices[$service]) || !in_array($action, ['start', 'stop', 'restart'], true))) {
     http_response_code(400);

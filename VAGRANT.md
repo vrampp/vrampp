@@ -1,6 +1,6 @@
 # vrampp: curso prático de Vagrant e infraestrutura
 
-Este manual é o curso prático do projeto `vrampp`, criado pelo Prof. Rold Jr. para ensinar DevOps a partir de entregas pequenas e verificáveis. A primeira versão apresenta uma VM Linux local com uma pequena pilha web instalada diretamente no sistema operacional: Apache, PHP, MariaDB, phpMyAdmin e FTP. A VM cria um banco de exemplo, popula três registros e publica uma landing page PHP que executa um `SELECT` e mostra uma lista.
+Este manual é o curso prático do projeto `vrampp`, criado pelo Prof. Rold Jr. para ensinar DevOps a partir de entregas pequenas e verificáveis. A primeira versão apresenta uma VM Debian Bookworm compacta com uma pequena pilha web instalada diretamente no sistema operacional: Apache, PHP, MariaDB, phpMyAdmin e FTP. A VM cria um banco de exemplo, popula três registros e publica uma landing page PHP que executa um `SELECT` e mostra uma lista.
 
 O escopo é demonstrar, de ponta a ponta, as camadas de um ambiente web: máquina, sistema operacional, servidor HTTP, interpretador, banco, credenciais, tabela, consulta e resposta.
 
@@ -25,7 +25,7 @@ O `vrampp` atual é deliberadamente tradicional. O Vagrant cria a VM e o `bootst
 Ao terminar, esta sequência deve funcionar:
 
 ```text
-Windows -> VirtualBox -> Vagrant -> Ubuntu -> Apache/PHP -> MariaDB -> phpMyAdmin/FTP -> SELECT -> HTML
+Windows -> VirtualBox -> Vagrant -> Debian -> Apache/PHP -> MariaDB -> phpMyAdmin/FTP -> SELECT -> HTML
 ```
 
 Abra `http://localhost:55080` no Windows e veja a lista de produtos de exemplo. Nenhum container é necessário nesta primeira camada.
@@ -36,10 +36,10 @@ Uma aplicação web depende de camadas. Cada camada responde a uma pergunta:
 
 | Camada | Pergunta | Recurso utilizado |
 | --- | --- | --- |
-| Máquina | Onde o sistema executa? | VM Ubuntu |
+| Máquina | Onde o sistema executa? | VM Debian |
 | Virtualização | Quem cria a VM? | VirtualBox |
 | Automação | Como repetir a criação? | Vagrantfile |
-| Sistema | Qual ambiente base? | Ubuntu Jammy |
+| Sistema | Qual ambiente base? | Debian Bookworm |
 | Servidor | Quem recebe HTTP? | Apache |
 | Linguagem | Quem executa a página? | PHP |
 | Dados | Onde ficam os registros? | MariaDB |
@@ -71,7 +71,7 @@ Antes de subir a VM, crie a configuração local:
 Copy-Item .env.example .env
 ```
 
-O `.env` é lido pelo `bootstrap.sh` dentro da VM e gera `config.local.php`, que não é distribuído pelo Git. O repositório oferece `.env.example` apenas como modelo de nomes e valores. Nesta demonstração, `root` / `vrampp` são credenciais didáticas da VM local; nunca use essa senha em produção, não envie `.env` para o Git e não cole secrets em issues ou pull requests.
+O `.env` é lido pelo `bootstrap.sh` dentro da VM e gera `config.local.php`, que não é distribuído pelo Git. O repositório oferece `.env.example` apenas como modelo de nomes e valores. Nesta demonstração, `root` / `vrampp` são credenciais didáticas do banco local e `admin` / `vrampp-admin` protegem o painel; nunca use essas senhas em produção, não envie `.env` para o Git e não cole secrets em issues ou pull requests.
 
 O Vagrant precisa de um provider de virtualização. Usaremos VirtualBox:
 
@@ -79,7 +79,7 @@ O Vagrant precisa de um provider de virtualização. Usaremos VirtualBox:
 Windows
   -> VirtualBox: motor da VM
     -> Vagrant: automação
-      -> Ubuntu Jammy: guest
+      -> Debian Bookworm: guest
         -> Apache + PHP + MariaDB
 ```
 
@@ -120,7 +120,7 @@ O diretório `.vagrant/` é criado automaticamente pelo Vagrant para guardar o e
 ```ruby
 # VM genérica: Apache, PHP, MariaDB, phpMyAdmin e FTP instalados no guest.
 Vagrant.configure("2") do |config|
-  config.vm.box = "ubuntu/jammy64"
+  config.vm.box = "debian/bookworm64"
   config.vm.hostname = "vrampp-local"
   config.vm.network "forwarded_port", guest: 80, host: 55080, auto_correct: true
   config.vm.network "forwarded_port", guest: 21, host: 55021, auto_correct: true
@@ -137,7 +137,7 @@ end
 
 ### `config.vm.box`
 
-Escolhe a box base `ubuntu/jammy64`. Na primeira execução, o Vagrant baixa a imagem; nas seguintes, reutiliza o cache local.
+Escolhe a box base `debian/bookworm64`. Na primeira execução, o Vagrant baixa a imagem; nas seguintes, reutiliza o cache local.
 
 ### `hostname`
 
@@ -159,7 +159,7 @@ As portas representam lados diferentes da comunicação:
 
 ### Portas internas, portas expostas e NAT
 
-Uma porta pertence ao sistema que está escutando nela. Dentro do Ubuntu guest, os serviços usam suas portas naturais:
+Uma porta pertence ao sistema que está escutando nela. Dentro do Debian guest, os serviços usam suas portas naturais:
 
 | Serviço | Porta interna no Ubuntu | Porta exposta no Windows |
 | --- | ---: | ---: |
@@ -168,9 +168,19 @@ Uma porta pertence ao sistema que está escutando nela. Dentro do Ubuntu guest, 
 | FTP/vsftpd | `21` | `55021` |
 | SSH | `22` | gerenciada pelo Vagrant; consulte `vagrant port` |
 
-O encaminhamento é um NAT/port forwarding do VirtualBox. Quando o navegador acessa `localhost:55080`, o Windows entrega o tráfego ao adaptador NAT da VM, e o VirtualBox encaminha para `guest:80`. O Apache nunca precisa escutar `55080` dentro do Ubuntu. Da mesma forma, um cliente FTP usa `localhost:55021`, mas o vsftpd continua escutando `21` no guest.
+O encaminhamento é um NAT/port forwarding do VirtualBox. Quando o navegador acessa `localhost:55080`, o Windows entrega o tráfego ao adaptador NAT da VM, e o VirtualBox encaminha para `guest:80`. O Apache nunca precisa escutar `55080` dentro do Debian. Da mesma forma, um cliente FTP usa `localhost:55021`, mas o vsftpd continua escutando `21` no guest.
 
-O MariaDB é deliberadamente diferente: o banco fica acessível apenas dentro da VM em `127.0.0.1:3306`. Isso reduz a superfície de ataque. Um programa de banco no Windows não deve tentar `localhost:3306`, porque esse endereço aponta para o Windows, não para o Ubuntu.
+O MariaDB é deliberadamente diferente: o banco fica acessível apenas dentro da VM em `127.0.0.1:3306`. Isso reduz a superfície de ataque. Um programa de banco no Windows não deve tentar `localhost:3306`, porque esse endereço aponta para o Windows, não para o Debian guest.
+
+### Instalações paralelas
+
+O `Vagrantfile` procura uma porta TCP livre para cada serviço no host, começando pelos valores do `.env`. A porta interna não muda: Apache continua em `80` e FTP em `21`. Se `55080` estiver ocupada, a próxima instalação usa `55081`; se `55021` estiver ocupada, usa `55022`. O Vagrant injeta as portas efetivas no provisionamento, e o dashboard as exibe.
+
+Cada instalação precisa estar em uma pasta própria e possuir sua própria VM. Para descobrir as portas de uma cópia:
+
+```powershell
+vagrant port
+```
 
 Para estudar um acesso direto, o exemplo de NAT usa `55306` no host e `3306` no guest:
 
@@ -341,7 +351,7 @@ A mesma página apresenta LEDs de operação. O cartão Apache/PHP prova que a r
 
 ## 9. phpMyAdmin e FTP
 
-Com a VM ligada, acesse `http://localhost:55080/phpmyadmin`. Use `root` e a senha definida no `.env` (`vrampp` no exemplo didático) para consultar o banco `curso_exemplo`. Essas credenciais são exclusivas do laboratório.
+Com a VM ligada, acesse `http://localhost:55080`. O navegador solicitará `ADMIN_USER` e `ADMIN_PASSWORD` definidos no `.env`; essa autenticação protege o dashboard e o endpoint de serviços. Depois do login, acesse phpMyAdmin pelo link do painel e use `root`/`DB_PASSWORD` somente dentro da VM local.
 
 O vsftpd não permite acesso anônimo e fica disponível no host pela porta `55021`:
 
@@ -441,7 +451,7 @@ Erros comuns e resposta:
 
 - `/.env: line ... $'\r': command not found`: o arquivo foi salvo com CRLF e o Bash recebeu o caractere de retorno do Windows. Salve `.env` com LF, ou normalize antes do provisionamento; nunca remova a validação do arquivo.
 - `Vagrant cannot forward the specified ports`: a porta host está ocupada. Consulte `Get-NetTCPConnection`, pare o processo ou escolha outra porta.
-- a página Ubuntu aparece: o Apache ainda tem `index.html` padrão ou o provisionamento não foi reaplicado. Execute `vagrant provision` e confirme `/var/www/html/index.php` dentro do guest.
+- a página padrão do sistema aparece: o Apache ainda tem `index.html` padrão ou o provisionamento não foi reaplicado. Execute `vagrant provision` e confirme `/var/www/html/index.php` dentro do guest.
 - o banco não conecta: confira o `.env`, o estado de `mariadb` e se a aplicação usa `127.0.0.1:3306` dentro da VM, não a porta exposta do Windows.
 - o serviço não sobe: use `vagrant ssh`, `systemctl status apache2 mariadb vsftpd` e `journalctl -u SERVICO --no-pager`.
 
@@ -515,7 +525,7 @@ Essa camada é a transição entre a instalação tradicional deste documento e 
 - Vagrant - providers: https://developer.hashicorp.com/vagrant/docs/providers
 - Vagrant - provisionamento: https://developer.hashicorp.com/vagrant/docs/provisioning
 - VirtualBox - documentação: https://www.virtualbox.org/wiki/Documentation
-- Ubuntu Server - documentação: https://documentation.ubuntu.com/server/
+- Debian - documentação: https://www.debian.org/doc/
 - Apache HTTP Server - documentação: https://httpd.apache.org/docs/
 - PHP - manual oficial: https://www.php.net/docs.php
 - PDO - manual oficial: https://www.php.net/manual/en/book.pdo.php

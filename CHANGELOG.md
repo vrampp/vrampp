@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0] - 2026-08-21
+
+### Adicionado
+
+- autenticação Basic Auth para o dashboard e a API;
+- seleção de portas host livres em cada execução do Vagrant;
+- propagação das portas efetivas para a página e o endpoint de status;
+- base Debian Bookworm com memória reduzida e cache APT limpo.
+
+### Segurança
+
+- ações de serviço continuam aceitando somente POST;
+- credenciais do painel permanecem no `.env` local.
+
+## [0.4.0] - 2026-08-21
+
+### Adicionado
+
+- base Debian Bookworm compacta no lugar da Ubuntu genérica;
+- seleção automática de portas host livres para instalações paralelas;
+- painel protegido por autenticação Basic Auth configurada no `.env`;
+- portas efetivas propagadas ao dashboard de cada VM.
+
+### Decisões
+
+- Tiny Core foi descartado nesta etapa por não oferecer a base `apt`/`systemd` necessária sem reconstruir o laboratório;
+- as portas internas permanecem estáveis e somente o NAT do host varia;
+- credenciais do painel são locais e nunca entram no Git.
+
 ## [0.3.0] - 2026-08-21
 
 ### Organizado

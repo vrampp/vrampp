@@ -23,8 +23,15 @@ set +a
 : "${DB_EXPOSE:=false}"
 : "${DB_REMOTE_USER:=vrampp_client}"
 : "${DB_REMOTE_PASSWORD:=vrampp-client}"
+: "${ADMIN_USER:=admin}"
+: "${ADMIN_PASSWORD:=vrampp-admin}"
+: "${VRAMPP_EFFECTIVE_HTTP_PORT:=55080}"
+: "${VRAMPP_EFFECTIVE_FTP_PORT:=55021}"
+: "${VRAMPP_EFFECTIVE_DB_PORT:=0}"
 apt-get update
-apt-get install -y apache2 libapache2-mod-php php-mysql mariadb-server phpmyadmin vsftpd
+apt-get install -y apache2 apache2-utils libapache2-mod-php php-mysql mariadb-server phpmyadmin vsftpd
+apt-get clean
+rm -rf /var/lib/apt/lists/*
 systemctl enable --now apache2 mariadb vsftpd
 
 if [ "$DB_EXPOSE" = "true" ]; then
@@ -51,6 +58,20 @@ if [ -d /usr/share/phpmyadmin ]; then
 	a2enconf phpmyadmin
 fi
 a2enmod rewrite
+a2enmod auth_basic authn_file
+systemctl reload apache2
+
+printf '%s\n' "${ADMIN_PASSWORD}" | htpasswd -i -c -B /etc/apache2/.vrampp.htpasswd "${ADMIN_USER}"
+cat > /etc/apache2/conf-available/vrampp-auth.conf <<'APACHE'
+<Directory /var/www/html>
+	AuthType Basic
+	AuthName "vrampp dashboard"
+	AuthBasicProvider file
+	AuthUserFile /etc/apache2/.vrampp.htpasswd
+	Require valid-user
+</Directory>
+APACHE
+a2enconf vrampp-auth
 systemctl reload apache2
 
 install -d -o www-data -g www-data /var/www/html
@@ -98,6 +119,9 @@ return [
 	'name' => '${DB_NAME}',
 	'user' => '${DB_USER}',
 	'password' => '${DB_PASSWORD}',
+	'http_port' => '${VRAMPP_EFFECTIVE_HTTP_PORT}',
+	'ftp_port' => '${VRAMPP_EFFECTIVE_FTP_PORT}',
+	'db_port' => '${VRAMPP_EFFECTIVE_DB_PORT}',
 ];
 PHP_CONFIG
 chown www-data:www-data /var/www/html/config.local.php

@@ -1,6 +1,6 @@
 # vrampp
 
-Projeto didático do Prof. Rold Jr. para aprender DevOps construindo um ambiente real, pequeno e verificável. O nome combina **Vagrant** com a ideia de um XAMPP próprio, executado em uma VM Ubuntu.
+Projeto didático do Prof. Rold Jr. para aprender DevOps construindo um ambiente real, pequeno e verificável. O nome combina **Vagrant** com a ideia de um XAMPP próprio, executado em uma VM Debian compacta.
 
 O objetivo não é entregar uma caixa-preta pronta: é acompanhar, como um projeto, a passagem da infraestrutura manual para Vagrant, depois para containers e, mais adiante, para uma esteira de publicação. Cada versão deixa uma entrega funcionando e uma decisão técnica compreensível.
 
@@ -12,13 +12,17 @@ O `vrampp` não pretende substituir uma distribuição XAMPP pronta. Ele torna e
 
 ## O que esta primeira versão entrega
 
-Esta primeira versão do `vrampp` usa somente Vagrant e uma VM Ubuntu. Ao executar o provisionamento, a VM instala e deixa disponíveis:
+Esta primeira versão do `vrampp` usa somente Vagrant e uma VM Debian Bookworm compacta. Ao executar o provisionamento, a VM instala e deixa disponíveis:
 
+- Debian Bookworm como base enxuta e compatível com `apt` e `systemd`;
 - Apache para servir a página;
 - PHP para executar o código;
 - MariaDB já instanciado com banco, tabela e registros;
 - phpMyAdmin para inspeção local do banco;
-- FTP local para demonstrar transferência de arquivos.
+- FTP local para demonstrar transferência de arquivos;
+- painel protegido por usuário e senha do `.env`.
+
+Cada cópia do laboratório procura portas host livres a partir do prefixo `55`. Assim, duas instalações podem coexistir: uma pode usar `55080/55021` e outra `55081/55022`, sem alterar as portas internas `80/21` da VM.
 
 Containers ainda não fazem parte desta pasta. Eles são a próxima etapa do curso e serão usados para comparar a instalação tradicional da VM com uma infraestrutura descrita por `Dockerfile` e `compose.yaml`.
 
@@ -65,7 +69,7 @@ Prepare a configuracao local:
 Copy-Item .env.example .env
 ```
 
-O `.env` contém o exemplo didático `root` / `vrampp` para esta VM. Ele é ignorado pelo Git e não deve ser enviado ao repositório. Em um projeto real, use secrets externos, senhas fortes e usuários com o menor privilégio necessário.
+O `.env` contém o exemplo didático `root` / `vrampp` e `admin` / `vrampp-admin` para esta VM. Ele é ignorado pelo Git e não deve ser enviado ao repositório. Em um projeto real, use secrets externos, senhas fortes e usuários com o menor privilégio necessário.
 
 Subir o laboratório:
 
@@ -93,7 +97,7 @@ Abrir no navegador:
 - `http://localhost:55080/phpmyadmin`: administração do banco;
 - `localhost:55021`: FTP local, sem acesso anônimo.
 
-O dashboard mostra LEDs dos serviços e permite subir, descer ou reiniciar Apache, MariaDB e FTP. Os controles são didáticos e limitados pelo wrapper sudo do provisionamento.
+O dashboard pede autenticação HTTP e mostra LEDs dos serviços. Depois do login, permite subir, descer ou reiniciar Apache, MariaDB e FTP. Os controles são didáticos e limitados pelo wrapper sudo do provisionamento.
 
 Desligar ou remover:
 
@@ -140,7 +144,7 @@ As credenciais do exemplo são somente locais e vêm de `.env`. Não versione `.
 
 ## Versão
 
-`v0.3.0` é o marco documental e operacional atual. `v0.1.0` permanece como a primeira versão histórica da VM Vagrant.
+`v0.5.0` é o marco atual: base Debian compacta, portas paralelas e painel autenticado. `v0.1.0` permanece como a primeira versão histórica da VM Vagrant.
 
 ## Licença e contato
 
@@ -150,7 +154,7 @@ Este projeto é distribuído sob a [licença MIT](LICENSE). Contato do Prof. Rol
 
 - Vagrant: https://developer.hashicorp.com/vagrant/docs
 - VirtualBox: https://www.virtualbox.org/wiki/Documentation
-- Ubuntu Server: https://documentation.ubuntu.com/server/
+- Debian: https://www.debian.org/doc/
 - Apache: https://httpd.apache.org/docs/
 - PHP: https://www.php.net/docs.php
 - MariaDB: https://mariadb.com/docs/
