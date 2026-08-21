@@ -4,7 +4,7 @@ Projeto didático do Prof. Rold Jr. para aprender DevOps construindo um ambiente
 
 O objetivo não é entregar uma caixa-preta pronta: é acompanhar, como um projeto, a passagem da infraestrutura manual para Vagrant, depois para containers e, mais adiante, para uma esteira de publicação. Cada versão deixa uma entrega funcionando e uma decisão técnica compreensível.
 
-O repositório funciona como laboratório independente: clone o projeto, consulte o [VAGRANT.md](VAGRANT.md), instale VirtualBox e Vagrant e execute `vagrant up`. O Markdown é o material de apoio do projeto: explica os conceitos, descreve cada arquivo, orienta a execução e mostra como diagnosticar problemas.
+O repositório funciona como laboratório independente: clone o projeto, consulte o [VAGRANT.md](VAGRANT.md), instale VirtualBox e Vagrant, copie `.env.example` para `.env` e execute `vagrant up`. O Markdown é o material de apoio do projeto: explica os conceitos, descreve cada arquivo, orienta a execução e mostra como diagnosticar problemas.
 
 O objetivo é aprender Vagrant praticando. A criação de uma stack LAMP própria é um exercício útil porque reúne vários recursos do Vagrant em um único ambiente: box, provider, VM, hostname, portas encaminhadas, pasta compartilhada, provisionamento, serviços Linux, banco de dados e ciclo de vida. O resultado é uma aplicação pequena, mas o aprendizado está em construir, verificar, parar, recriar e entender cada camada.
 
@@ -59,12 +59,32 @@ VBoxManage --version
 vagrant --version
 ```
 
+Prepare a configuracao local:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+O `.env` contém o exemplo didático `root` / `vrampp` para esta VM. Ele é ignorado pelo Git e não deve ser enviado ao repositório. Em um projeto real, use secrets externos, senhas fortes e usuários com o menor privilégio necessário.
+
 Subir o laboratório:
 
 ```powershell
 vagrant validate
 vagrant up
 vagrant status
+```
+
+Depois de alterar `.env` ou os scripts, reaplique o provisionamento:
+
+```powershell
+vagrant provision
+```
+
+Smoke test após a VM estar em execução:
+
+```powershell
+.\smoke-test.ps1
 ```
 
 Verificar a aplicação:
@@ -75,9 +95,11 @@ Invoke-WebRequest http://localhost:55080
 
 Abrir no navegador:
 
-- `http://localhost:55080`: página PHP com `SELECT` em `products`;
+- `http://localhost:55080`: dashboard PHP com `SELECT` em `products` e status dos serviços;
 - `http://localhost:55080/phpmyadmin`: administração do banco;
 - `localhost:55021`: FTP local, sem acesso anônimo.
+
+O dashboard mostra LEDs dos serviços e permite subir, descer ou reiniciar Apache, MariaDB e FTP. Os controles são didáticos e limitados pelo wrapper sudo do provisionamento. O endpoint usado pelo painel é `http://localhost:55080/api/services.php`.
 
 Desligar ou remover:
 
@@ -95,24 +117,31 @@ vrampp/
 ├── VAGRANT.md
 ├── Vagrantfile
 ├── bootstrap.sh
+├── .env.example
+├── smoke-test.ps1
 ├── database/
 │   └── init.sql
 └── example/
-    └── index.php
+    ├── index.php
+    └── api/
+        └── services.php
 ```
 
 - `Vagrantfile`: define a box, recursos, rede, portas e provisionamento;
 - `bootstrap.sh`: instala e configura a stack no guest;
-- `database/init.sql`: cria banco, usuário, tabela e registros iniciais;
+- `database/init.sql`: cria banco, tabela e registros iniciais;
 - `example/index.php`: landing page com Bootstrap/Vue CDN, LEDs de status, teste integrado de PHP, PDO, MariaDB e HTML;
+- `example/api/services.php`: endpoint restrito para status e ciclo de vida dos serviços;
+- `smoke-test.ps1`: verifica dashboard HTTP e endpoint de status;
 - `LICENSE`: licença MIT do projeto, mantido pelo Prof. Rold Jr.;
 - `VAGRANT.md`: manual completo de conceitos, operação, diagnóstico e caso de uso.
+- `.env.example`: modelo de configuração; o `.env` real nunca entra no Git.
 
 A pasta `.vagrant/` é estado local gerado pelo Vagrant. Não deve ser criada manualmente, versionada ou enviada ao GitHub.
 
 ## Segurança
 
-As credenciais do exemplo são somente locais. Não reutilize `curso-local`, não exponha MariaDB e não publique FTP sem TLS na internet. Em ambientes reais, prefira SFTP/SSH, HTTPS, secrets externos e uma política de firewall.
+As credenciais do exemplo são somente locais e vêm de `.env`. Não versione `.env`, não reutilize `vrampp` fora da VM, não exponha MariaDB por padrão e não publique FTP sem TLS na internet. Em ambientes reais, prefira SFTP/SSH, HTTPS, secrets externos, usuários de banco com menor privilégio e uma política de firewall.
 
 ## Versão
 

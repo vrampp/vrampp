@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
 
+$config = require __DIR__ . '/config.local.php';
 $pdo = new PDO(
-    'mysql:host=localhost;dbname=curso_exemplo;charset=utf8mb4',
-    'curso',
-    'curso-local',
+    sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['host'], $config['port'], $config['name']),
+    $config['user'],
+    $config['password'],
     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
 );
 $products = $pdo->query('SELECT id, name, category FROM products ORDER BY id')->fetchAll();
@@ -18,10 +19,10 @@ $phpmyadminHeaders = @get_headers('http://127.0.0.1/phpmyadmin', true, stream_co
 ]));
 $phpmyadminOnline = is_array($phpmyadminHeaders) && count($phpmyadminHeaders) > 0;
 $services = [
-    ['name' => 'Apache + PHP', 'port' => '55080', 'state' => 'online', 'detail' => 'Esta página foi renderizada pelo servidor web.'],
-    ['name' => 'MariaDB', 'port' => '3306', 'state' => 'online', 'detail' => 'PDO executou SELECT em curso_exemplo.products.'],
-    ['name' => 'phpMyAdmin', 'port' => '55080', 'state' => $phpmyadminOnline ? 'online' : 'offline', 'detail' => $phpmyadminOnline ? 'Resposta HTTP recebida em /phpmyadmin.' : 'Nenhuma resposta HTTP recebida em /phpmyadmin.'],
-    ['name' => 'FTP / vsftpd', 'port' => '55021', 'state' => $ftpOnline ? 'online' : 'offline', 'detail' => $ftpOnline ? 'Socket local respondeu na porta 21.' : 'Socket local não respondeu na porta 21.']
+    ['name' => 'Apache + PHP', 'service' => 'apache2', 'port' => '55080', 'state' => 'online', 'detail' => 'Esta página foi renderizada pelo servidor web.'],
+    ['name' => 'MariaDB', 'service' => 'mariadb', 'port' => '3306', 'state' => 'online', 'detail' => 'PDO executou SELECT em curso_exemplo.products.'],
+    ['name' => 'phpMyAdmin', 'service' => '', 'port' => '55080', 'state' => $phpmyadminOnline ? 'online' : 'offline', 'detail' => $phpmyadminOnline ? 'Resposta HTTP recebida em /phpmyadmin.' : 'Nenhuma resposta HTTP recebida em /phpmyadmin.'],
+    ['name' => 'FTP / vsftpd', 'service' => 'vsftpd', 'port' => '55021', 'state' => $ftpOnline ? 'online' : 'offline', 'detail' => $ftpOnline ? 'Socket local respondeu na porta 21.' : 'Socket local não respondeu na porta 21.']
 ];
 ?>
 <!doctype html>
@@ -68,6 +69,9 @@ $services = [
         .status-meta { margin-top: 12px; color: var(--muted); font: 12px/1.5 Arial, sans-serif; }
         .status-port { display: inline-block; padding: 4px 8px; color: var(--teal); background: #e6f2f1; font: 700 11px Arial, sans-serif; }
         .status-proof { margin: 8px 0 0; color: var(--muted); font: 12px/1.4 Arial, sans-serif; }
+        .service-actions { display: flex; gap: 6px; margin-top: 16px; }
+        .service-actions button { border: 1px solid var(--line); padding: 6px 9px; color: var(--ink); background: transparent; font: 700 10px Arial, sans-serif; text-transform: uppercase; }
+        .service-actions button:hover { color: #fff; background: var(--teal); }
         .license { margin-top: 20px; color: #b7c3ce; font: 12px Arial, sans-serif; }
         .data { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--line); }
         .data-head { display: flex; justify-content: space-between; gap: 20px; align-items: end; margin-bottom: 18px; }
@@ -98,6 +102,11 @@ $services = [
                     <div><span class="status-led" :class="{ offline: service.state !== 'online' }"></span><span class="status-name">{{ service.name }}</span></div>
                     <div class="status-meta">Porta <span class="status-port">{{ service.port }}</span></div>
                     <p class="status-proof">{{ service.detail }}</p>
+                    <div v-if="service.service" class="service-actions">
+                        <button type="button" @click="control(service.service, 'start')">Subir</button>
+                        <button type="button" @click="control(service.service, 'stop')">Descer</button>
+                        <button type="button" @click="control(service.service, 'restart')">Reiniciar</button>
+                    </div>
                 </article>
             </div>
         </div>
@@ -109,7 +118,22 @@ $services = [
 <script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.min.js"></script>
 <script>
 Vue.createApp({
-    data: () => ({ services: <?= json_encode($services, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?> })
+    data: () => ({ services: <?= json_encode($services, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?> }),
+    methods: {
+        async refresh() {
+            const response = await fetch('/api/services.php');
+            const result = await response.json();
+            if (response.ok) this.services = result.services;
+        },
+        async control(service, action) {
+            await fetch(`/api/services.php?service=${encodeURIComponent(service)}&action=${action}`, { method: 'POST' });
+            await this.refresh();
+        }
+    },
+    mounted() {
+        this.refresh();
+        window.setInterval(() => this.refresh(), 10000);
+    }
 }).mount('#service-app');
 </script>
 </body>

@@ -65,6 +65,14 @@ Esta primeira etapa é deliberadamente tradicional. Ela torna visível o que dep
 
 ## 4. Dependências do host
 
+Antes de subir a VM, crie a configuração local:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+O `.env` é lido pelo `bootstrap.sh` dentro da VM e gera `config.local.php`, que não é distribuído pelo Git. O repositório oferece `.env.example` apenas como modelo de nomes e valores. Nesta demonstração, `root` / `vrampp` são credenciais didáticas da VM local; nunca use essa senha em produção, não envie `.env` para o Git e não cole secrets em issues ou pull requests.
+
 O Vagrant precisa de um provider de virtualização. Usaremos VirtualBox:
 
 ```text
@@ -91,8 +99,9 @@ VirtualBox é uma dependência do host, não da VM. Sem um provider, o Vagrant n
 Entre nesta pasta:
 
 ```text
-myXampp/
+vrampp/
   .gitignore
+  .env.example
   VAGRANT.md
   Vagrantfile
   bootstrap.sh
@@ -102,11 +111,11 @@ myXampp/
     index.php
 ```
 
-Os arquivos formam um ambiente independente. Copie a pasta inteira `myXampp`, abra um terminal dentro dela e execute `vagrant up`; não é necessário copiar arquivos adicionais.
+Os arquivos formam um ambiente independente. Copie a pasta inteira `vrampp`, abra um terminal dentro dela e execute `vagrant up`; não é necessário copiar arquivos adicionais.
 
 O diretório `.vagrant/` é criado automaticamente pelo Vagrant para guardar o estado da VM. Não o crie manualmente, não o distribua e não o versiona: o `.gitignore` já o exclui. Se ele aparecer após um teste, isso é esperado.
 
-## 6. O Vagrantfile do myXampp
+## 6. O Vagrantfile do vrampp
 
 ```ruby
 # VM genérica: Apache, PHP, MariaDB, phpMyAdmin e FTP instalados no guest.
@@ -121,7 +130,7 @@ Vagrant.configure("2") do |config|
     virtualbox.cpus = 2
   end
 
-  config.vm.synced_folder ".", "/vagrant/myXampp"
+  config.vm.synced_folder ".", "/vagrant/vrampp"
   config.vm.provision "shell", path: "bootstrap.sh"
 end
 ```
@@ -147,6 +156,42 @@ As portas representam lados diferentes da comunicação:
 
 - **guest:** porta dentro da VM, onde Apache ou vsftpd escutam;
 - **host:** porta no Windows, usada pelo navegador ou cliente FTP.
+
+### Portas internas, portas expostas e NAT
+
+Uma porta pertence ao sistema que está escutando nela. Dentro do Ubuntu guest, os serviços usam suas portas naturais:
+
+| Serviço | Porta interna no Ubuntu | Porta exposta no Windows |
+| --- | ---: | ---: |
+| Apache/PHP | `80` | `55080` |
+| MariaDB | `3306` | não exposta por padrão |
+| FTP/vsftpd | `21` | `55021` |
+| SSH | `22` | gerenciada pelo Vagrant; consulte `vagrant port` |
+
+O encaminhamento é um NAT/port forwarding do VirtualBox. Quando o navegador acessa `localhost:55080`, o Windows entrega o tráfego ao adaptador NAT da VM, e o VirtualBox encaminha para `guest:80`. O Apache nunca precisa escutar `55080` dentro do Ubuntu. Da mesma forma, um cliente FTP usa `localhost:55021`, mas o vsftpd continua escutando `21` no guest.
+
+O MariaDB é deliberadamente diferente: o banco fica acessível apenas dentro da VM em `127.0.0.1:3306`. Isso reduz a superfície de ataque. Um programa de banco no Windows não deve tentar `localhost:3306`, porque esse endereço aponta para o Windows, não para o Ubuntu.
+
+Para estudar um acesso direto, o exemplo de NAT usa `55306` no host e `3306` no guest:
+
+```powershell
+$env:VRAMPP_DB_PORT = "55306"
+vagrant up
+```
+
+Esse encaminhamento só cria o caminho de rede. Para o MariaDB aceitar conexões externas, `.env` também precisa usar `DB_EXPOSE=true`; o provisionamento então escuta em `0.0.0.0` e cria o usuário remoto definido em `DB_REMOTE_USER`. Use esse modo apenas em laboratório e conecte com o usuário remoto, nunca com `root`.
+
+No cliente de banco, a conexão será `127.0.0.1:55306`, usuário `vrampp_client` e a senha definida no `.env`. O servidor continua vendo sua porta interna como `3306`.
+
+Para SSH, o caminho mais seguro é o túnel, sem publicar MariaDB:
+
+```powershell
+vagrant ssh
+vagrant port
+ssh -L 55306:127.0.0.1:3306 vagrant@127.0.0.1 -p PORTA_SSH
+```
+
+Com o túnel ativo, o cliente de banco acessa `127.0.0.1:55306`, mas o tráfego percorre SSH e termina em `127.0.0.1:3306` dentro da VM. Substitua `PORTA_SSH` pelo valor exibido por `vagrant port`. O túnel é preferível a abrir MariaDB em uma interface de rede.
 
 O guest pode usar a porta 80 em várias VMs diferentes, porque cada VM possui sua própria rede virtual. Já a porta host pertence ao Windows inteiro. Dois programas não podem escutar simultaneamente o mesmo endereço e porta, por exemplo `0.0.0.0:55080`.
 
@@ -250,7 +295,7 @@ Entrega CPU e memória ao guest e escolhe VirtualBox como motor de virtualizaç�
 
 ### `synced_folder`
 
-Monta a pasta inteira `myXampp` em `/vagrant/myXampp`. Assim, `example/index.php`, `database/init.sql` e os demais arquivos ficam disponíveis dentro da VM sem cópia manual.
+Monta a pasta inteira `vrampp` em `/vagrant/vrampp`. Assim, `example/index.php`, `database/init.sql` e os demais arquivos ficam disponíveis dentro da VM sem cópia manual.
 
 ### `provision`
 
@@ -280,10 +325,11 @@ O script usa `CREATE IF NOT EXISTS` e inserções condicionais para poder ser re
 A página usa PDO para abrir a conexão:
 
 ```php
+$config = require __DIR__ . '/config.local.php';
 $pdo = new PDO(
-    'mysql:host=localhost;dbname=curso_exemplo;charset=utf8mb4',
-    'curso',
-    'curso-local'
+  "mysql:host={$config['host']};port={$config['port']};dbname={$config['name']}",
+  $config['user'],
+  $config['password']
 );
 $products = $pdo->query(
     'SELECT id, name, category FROM products ORDER BY id'
@@ -296,7 +342,7 @@ A mesma página apresenta LEDs de operação. O cartão Apache/PHP prova que a r
 
 ## 9. phpMyAdmin e FTP
 
-Com a VM ligada, acesse `http://localhost:55080/phpmyadmin`. Use o usuário `curso` e a senha `curso-local` para consultar o banco `curso_exemplo`. Essas credenciais são exclusivas do laboratório.
+Com a VM ligada, acesse `http://localhost:55080/phpmyadmin`. Use `root` e a senha definida no `.env` (`vrampp` no exemplo didático) para consultar o banco `curso_exemplo`. Essas credenciais são exclusivas da VM local.
 
 O vsftpd não permite acesso anônimo e fica disponível no host pela porta `55021`:
 
@@ -312,10 +358,10 @@ Um cliente FTP pode testar upload e download. O serviço é apenas local e não 
 
 ## 10. Subir a VM
 
-Abra o PowerShell na pasta `myXampp`:
+Abra o PowerShell na pasta `vrampp`:
 
 ```powershell
-cd A:\WSLS\CONTATICA\_dev\aulas\02-iac-e-primeira-publicação\vagrant\myXampp
+cd A:\BOLINHA\vrampp
 vagrant validate
 vagrant up
 ```
@@ -340,7 +386,7 @@ No Windows, abra `http://localhost:55080`. A tabela deve mostrar três produtos.
 
 ## 11. Comandos de ciclo de vida
 
-Execute na pasta `myXampp`:
+Execute na pasta `vrampp`:
 
 ```powershell
 vagrant status
@@ -362,11 +408,38 @@ vagrant destroy
 
 Use `vagrant halt` para terminar a sessão normalmente. Use `vagrant destroy` para reconstruir do zero. Dados no disco virtual podem ser perdidos ao destruir.
 
+### Manutenção diária
+
+- Use `vagrant provision` depois de alterar `bootstrap.sh`, `database/init.sql`, `.env` ou arquivos que o script copia para o guest. Isso reaplica a receita sem apagar o disco da VM.
+- Use `vagrant reload --provision` depois de alterar portas, hostname, memória, CPUs ou outras opções do `Vagrantfile`.
+- Use `vagrant halt` ao terminar o dia; ele desliga a VM e preserva os dados.
+- Use `vagrant up` no dia seguinte; ele inicia uma VM já criada sem reprovisionar automaticamente, salvo quando necessário.
+- Use `vagrant destroy -f` somente para reconstruir do zero, trocar a box ou corrigir estado corrompido. O banco local pode ser perdido.
+
+Exemplo de rotina:
+
+```powershell
+vagrant status
+vagrant port
+vagrant provision
+vagrant ssh
+vagrant halt
+```
+
+O `Vagrantfile`, o `bootstrap.sh`, o schema e a aplicação formam uma unidade versionada. Ao fazer checkout de um commit antigo, use também o IaC daquele commit e execute `vagrant provision`; não misture um provisionamento novo com uma aplicação antiga sem verificar compatibilidade.
+
 ## 12. Idempotência, estado e reprodutibilidade
 
 O diretório `.vagrant` guarda metadados locais do provider e não deve entrar no Git. O `Vagrantfile` descreve o estado desejado; o script executa detalhes imperativos.
 
 Idempotência significa que repetir `vagrant provision` não deve criar uma segunda tabela ou duplicar registros. Reprodutibilidade significa que outra pessoa, com as mesmas dependências, consegue obter uma VM equivalente.
+
+Erros comuns:
+
+- `/.env: line ... $'\r': command not found`: `.env` foi salvo em CRLF. Salve-o com LF antes do provisionamento.
+- `Vagrant cannot forward the specified ports`: a porta host está ocupada; consulte `Get-NetTCPConnection` e `vagrant port`.
+- página padrão do Ubuntu: o provisionamento não foi reaplicado ou o `index.html` padrão não foi removido; execute `vagrant provision`.
+- banco indisponível: confira `systemctl status mariadb` e lembre que `3306` é a porta interna da VM.
 
 Uma VM local não representa toda a produção. Firewall, DNS, HTTPS, backup, observabilidade e disponibilidade serão responsabilidades da camada Oracle no commit 03.
 
@@ -436,7 +509,7 @@ Essa camada é a transição entre a instalação tradicional deste documento e 
 
 ## Objetivo
 
-O pacote `myXampp` monta um ambiente web local em uma VM Ubuntu, sem containers:
+O pacote `vrampp` monta um ambiente web local em uma VM Ubuntu, sem containers:
 
 ```text
 VirtualBox -> Vagrant -> Ubuntu -> Apache + PHP + MariaDB + phpMyAdmin + vsftpd
@@ -471,7 +544,7 @@ vagrant --version
 
 ## Subir o ambiente
 
-No diretório `myXampp`:
+No diretório `vrampp`:
 
 ```powershell
 vagrant validate

@@ -4,6 +4,25 @@
 
 ### Adicionado
 
+- dashboard PHP com Bootstrap/Vue CDN, dados reais do MariaDB e LEDs de status;
+- endpoint `api/services.php` para leitura de status e controle restrito por POST;
+- smoke test PowerShell para validar dashboard e serviços;
+- `.env.example` como contrato documentado de configuração local;
+- suporte a `.env` com CRLF, comum em arquivos criados no Windows;
+- explicação de portas guest/host, NAT, MariaDB interno e túnel SSH;
+- rotina de manutenção, troubleshooting e versionamento conjunto do IaC.
+
+### Segurança
+
+- `.env` e `config.local.php` permanecem fora do Git;
+- MariaDB não é exposto por padrão;
+- exposição opcional usa porta host separada e usuário remoto distinto de `root`;
+- ações do dashboard ficam limitadas a Apache, MariaDB e vsftpd por wrapper sudo.
+
+## [0.2.0] - 2026-08-20
+
+### Adicionado
+
 - landing page técnica com Bootstrap 5 e Vue 3 carregados por CDN;
 - LEDs de status para Apache/PHP, MariaDB, phpMyAdmin e FTP;
 - verificação PHP do PDO e do socket local do vsftpd;
